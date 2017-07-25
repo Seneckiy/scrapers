@@ -1,0 +1,80 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+
+*.log*
+
+# Jet Brains Idea
+.idea/
+
+# Project specific
+data/
+meta/
+
+# C extensions
+*.so
+
+# database
+*.sqlite3
+
+# Distribution / packaging
+.Python
+env/
+bin/
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+
+# Django stuff:
+*.log
+*.pot
+
+*.pyc
+*.pyo
+env.sh
+*.db
+*.DS_Store
+
+commonstatic/*
+
+env/
+.env/
+venv/
+.venv/
+
+# Redis Dump (*.rdb)
+*.rdb
+
+MRKT365/MAIN/settings/_local_settings.py
+media/
