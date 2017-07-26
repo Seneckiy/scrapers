@@ -47,7 +47,7 @@ def get_mall_info(driver_page):
     mall_image = mall_main_info.find_element_by_css_selector('img').get_attribute('src')
 
     mall_info = {
-        'mall_name': mall_name,
+        'mall_name': mall_name.lower(),
         'mall_link': mall_main_link,
         'mall_image': mall_image
     }
@@ -111,7 +111,7 @@ def get_shop_info(driver_page):
     shop_link = shop_text[1].find_element_by_css_selector('a').get_attribute('href')
 
     shop_info = {
-        'shop_name': shop_name,
+        'shop_name': shop_name.lower(),
         'shop_image': shop_image,
         'discount_image': shop_sale_image,
         'shop_link': shop_link
@@ -157,7 +157,7 @@ def scrapers_dafi_page(shop_link):
             get_div_image = driver.find_element_by_xpath('//div[@class="event__posters"]')
             discount_image = get_div_image.find_element_by_css_selector('div').get_attribute('style')
             discount_image = ('{}' + discount_image.split('"')[1]).format(DAFI_MAIN_PAGE[:-1])
-            shop_discount_info.update({'shop_name': shop_name, 'discount_image': discount_image})
+            shop_discount_info.update({'shop_name': shop_name.lower(), 'discount_image': discount_image})
             # shop_discount_info['shop_name'] = shop_name
             # shop_discount_info['discount_image'] = discount_image
             discount_list.append(shop_discount_info)
@@ -173,4 +173,4 @@ def scrapers_dafi_page(shop_link):
     return finished_mall_discount
 
 DAFI_PAGE = "http://kharkov.dafi.ua/mall-promo/"
-scrapers_dafi_page(DAFI_PAGE)
+# scrapers_dafi_page(DAFI_PAGE)

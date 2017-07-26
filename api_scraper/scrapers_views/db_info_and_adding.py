@@ -21,8 +21,6 @@ def adding_second_discount_to_db(coll, discount_info, mall_name):
          'shop_name': discount_info['shop_name']}
     )
 
-    print(dir(coll.save(mall_name)))
-
     if not search_discount:
         print("Adding new discount: {}".format((discount_info.get('shop_name'))))
         mall_name.update(discount_info)
@@ -41,7 +39,6 @@ def adding_second_discount_to_db(coll, discount_info, mall_name):
 
 
 def adding_new_discount_to_db(coll, discount_info, mall_name):
-
 
     serch_discount = coll.aggregate(
         [

@@ -147,7 +147,7 @@ def get_info_discount(discount_page_info):
         'link_shop_discount': link_shop_discount,
         'discount_image': discount_image,
         'discount_description': discount_description,
-        'shop_name': discount_description
+        'shop_name': discount_description.lower()
     }
 
     return discount_info
@@ -177,7 +177,7 @@ def get_mall_info(mall_header):
         ).find('img').get('title')
 
         all_mall_sales_info = {
-            'mall_name': mall_name,
+            'mall_name': mall_name.lower(),
             'mall_link': mall_main_link,
             'mall_image': mall_image
         }
@@ -242,3 +242,6 @@ def scrapers_karavan_page(shop_link):
 
 KARAVAN_PAGE = 'https://kharkov.karavan.com.ua/mtype/sales-ru/'
 # scrapers_karavan_page(KARAVAN_PAGE)
+
+# test = "YYYhhjj"
+# print(test.lower())

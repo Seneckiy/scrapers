@@ -1,7 +1,6 @@
 import datetime
 from rest_framework.views import APIView
 from rest_framework.response import Response
-import json
 
 
 import pymongo
@@ -28,7 +27,7 @@ class ToDoView(APIView):
         if mall_name:
             data['mall_name'] = mall_name
         if shop_name:
-            data['shop_name'] = shop_name
+            data['shop_name'] = {"$regex": ".*{}.*".format(shop_name)}
         if selected_date:
             data['date_end'] = {'$gte': datetime.datetime.strptime(selected_date, "%Y-%m-%d")}
 
