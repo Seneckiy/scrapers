@@ -21,7 +21,7 @@ class ToDoView(APIView):
         data = {}
         search_list = []
         mall_name = request.GET.get('mall_name')
-        shop_name = request.GET.get('shop_name')   #'ROY ROBSON — СКИДКИ ДО -40%!' 'SWAROVSKI'
+        shop_name = request.GET.get('shop_name')
         selected_date = request.GET.get('date')
 
         if mall_name:
