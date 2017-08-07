@@ -21,12 +21,13 @@ def show_all_discount(shop_link):
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument('window-size=1200x600')
-    
+
     base_dir = os.path.dirname(os.path.dirname(__file__))
-    driver = webdriver.Chrome(
-        executable_path='{}/scrapers_views/chromedriver'.format(base_dir),
-        chrome_options=options
-    )
+    driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver")
+    # driver = webdriver.Chrome(
+    #     executable_path='{}/scrapers_views/chromedriver'.format(base_dir),
+    #     chrome_options=options
+    # )
 
     # driver = webdriver.Firefox()
     driver.get(shop_link)
