@@ -2,6 +2,7 @@ import time
 import os
 import selenium
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from scrapers_karavan import get_start_end_date
 from db_info_and_adding import get_database, adding_new_discount_to_db, adding_second_discount_to_db
 
@@ -140,7 +141,12 @@ def scrapers_dafi_page(shop_link):
     for link in discount_links:
         driver.get(link)
         discount_date = get_date_discount(driver)
-        discount_discription = driver.find_element_by_css_selector('p').text
+        try:
+            discount_discription = driver.find_element_by_css_selector('p').text
+        except NoSuchElementException:
+            discount_discription = ''
+
+        # discount_discription = driver.find_element_by_css_selector('p').text
         shop_discount_info = {
             'date_start': discount_date.get('start_date'),
             'date_end': discount_date.get('end_date'),
