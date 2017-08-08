@@ -76,5 +76,4 @@ venv/
 # Redis Dump (*.rdb)
 *.rdb
 
-MRKT365/MAIN/settings/_local_settings.py
-media/
+config.py

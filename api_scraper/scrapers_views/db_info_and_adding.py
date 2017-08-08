@@ -1,4 +1,5 @@
 import pymongo
+from aws_storage import get_image_link_s3
 
 DATABASE_HOST = 'localhost'
 DATABASE_INDEX = 27017
@@ -8,7 +9,7 @@ def get_database():
     client = pymongo.MongoClient(DATABASE_HOST, DATABASE_INDEX)
     db = client.test_scrapers
     coll = db.mall_sales
-    # db.mall_sales_second.drop()
+    db.mall_sales_second.drop()
     coll_second = db.mall_sales_second
     # return coll
     return coll_second
@@ -27,6 +28,13 @@ def adding_second_discount_to_db(coll, discount_info, mall_name):
         if mall_name.get('_id'):
             del mall_name['_id']
         coll.save(mall_name)
+
+        get_discount = coll.find_one({'_id': mall_name['_id']})
+        if get_discount['discount_image']:
+            create_link_s3 = get_image_link_s3(get_discount['discount_image'], str(get_discount['_id']))
+            get_discount['discount_image'] = create_link_s3
+            coll.save(get_discount)
+
     else:
 
         print("Discount already exists {}".format(discount_info.get('shop_name')))

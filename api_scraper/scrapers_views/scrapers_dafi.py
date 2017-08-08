@@ -4,11 +4,13 @@ import selenium
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from scrapers_karavan import get_start_end_date
+from aws_storage import check_mall_image
 from db_info_and_adding import get_database, adding_new_discount_to_db, adding_second_discount_to_db
 
 DAFI_MAIN_PAGE = "http://kharkov.dafi.ua/"
 # DAFI_PAGE = "http://kharkov.dafi.ua/mall-promo/"
 
+MALL_NAME = 'Dafi'
 
 def show_all_discount(shop_link):
     """
@@ -52,6 +54,7 @@ def get_mall_info(driver_page):
     mall_name = mall_main_info.find_element_by_css_selector('a').get_attribute('title')
     mall_main_link = mall_main_info.find_element_by_css_selector('a').get_attribute('href')
     mall_image = mall_main_info.find_element_by_css_selector('img').get_attribute('src')
+    mall_image = check_mall_image(mall_image, MALL_NAME)
 
     mall_info = {
         'mall_name': mall_name.lower(),

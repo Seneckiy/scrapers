@@ -5,6 +5,10 @@ import lxml
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 from db_info_and_adding import get_database, adding_new_discount_to_db, adding_second_discount_to_db
+from aws_storage import check_mall_image
+
+
+MALL_NAME = 'Karavan-KH'
 
 MONTH = (
     (1, 'Января'),
@@ -168,6 +172,8 @@ def get_mall_info(mall_header):
             'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
         ).find('img').get('src')
 
+        mall_image = check_mall_image(mall_image, MALL_NAME)
+
         mall_main_link = mall.find(
             'li', {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
         ).find('a').get('href')
@@ -238,10 +244,8 @@ def scrapers_karavan_page(shop_link):
     # finished_mall_discount = database.find({'mall_name': mall_main_info.get("mall_name")}).next()
 
     finished_mall_discount = [discount for discount in database.find({'mall_name': mall_main_info.get("mall_name")})]
+    print(len(finished_mall_discount))
     return finished_mall_discount
 
 KARAVAN_PAGE = 'https://kharkov.karavan.com.ua/mtype/sales-ru/'
-# scrapers_karavan_page(KARAVAN_PAGE)
-
-# test = "YYYhhjj"
-# print(test.lower())
+scrapers_karavan_page(KARAVAN_PAGE)
