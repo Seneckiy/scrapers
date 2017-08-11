@@ -1,7 +1,11 @@
 import pymongo
+import boto3
+import json
+from config import BUCKET_NAME, AWS_ACCESS_KEY, AWS_SECRET_KEY, TOPIC_ARN
 from aws_storage import get_image_link_s3
 
-DATABASE_HOST = 'localhost'
+# DATABASE_HOST = 'localhost'
+DATABASE_HOST = '18.220.30.245'
 DATABASE_INDEX = 27017
 
 
@@ -30,11 +34,19 @@ def adding_second_discount_to_db(coll, discount_info, mall_name):
         coll.save(mall_name)
 
         get_discount = coll.find_one({'_id': mall_name['_id']})
-        if get_discount['discount_image']:
-            create_link_s3 = get_image_link_s3(get_discount['discount_image'], str(get_discount['_id']))
-            get_discount['discount_image'] = create_link_s3
-            coll.save(get_discount)
 
+        if get_discount['discount_image']:
+
+            data = {'link': get_discount['discount_image'], 'id': str(get_discount['_id'])}
+
+            client = boto3.client(
+                'sns',
+                aws_access_key_id=AWS_ACCESS_KEY,
+                aws_secret_access_key=AWS_SECRET_KEY,
+                region_name='us-east-2'
+            )
+
+            client.publish(TopicArn=TOPIC_ARN, Message=json.dumps(data))
     else:
 
         print("Discount already exists {}".format(discount_info.get('shop_name')))
