@@ -77,3 +77,9 @@ venv/
 *.rdb
 
 config.py
+bson
+gridfs
+mongoengine
+mongoengine-0.13.0-py3.4.egg-info
+pymongo
+pymongo-3.4.0-py3.4.egg-info
