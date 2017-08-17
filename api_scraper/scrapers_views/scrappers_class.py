@@ -27,11 +27,6 @@ DB_SETTINGS = {
 
 
 class AwsConnectS3:
-    def __init__(self, credentials):
-        self.access_key = credentials['access_key']
-        self.secret_key = credentials['secret_key']
-        self.region_name = credentials['region_name']
-        self.bucket_name = credentials['bucket_name']
 
     def _get_client(self):
 
@@ -75,6 +70,17 @@ class Scrapper(metaclass=ABCMeta):
 
     mall_link = None
 
+    def __init__(self, url, db, mall_name, credentials):
+        self.mall_link = url
+        self.host = db['database_host']
+        self.index = db['database_index']
+        self.mall_name = mall_name
+        self.access_key = credentials['access_key']
+        self.secret_key = credentials['secret_key']
+        self.region_name = credentials['region_name']
+        self.bucket_name = credentials['bucket_name']
+
+
     @abc.abstractmethod
     def scrapper(self):
         pass
@@ -114,7 +120,7 @@ class Scrapper(metaclass=ABCMeta):
 
         return data_from_mall
 
-    def get_mall_info(self, mall_header, connect, mall_name):
+    def get_mall_info(self, mall_header, mall_name):
         """
         This method takes html page tags and pulls the required information for mall
         :param mall_header: <list> with <tag>
@@ -128,8 +134,7 @@ class Scrapper(metaclass=ABCMeta):
             mall_image = mall.find(
                 'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
             ).find('img').get('src')
-
-            mall_image = connect.check_mall_image(mall_image, mall_name)
+            mall_image = AwsConnectS3.check_mall_image(self, mall_image, mall_name)
 
             mall_main_link = mall.find(
                 'li', {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
@@ -313,18 +318,10 @@ class Scrapper(metaclass=ABCMeta):
 
 class ScrapperKaravan(Scrapper, AwsConnectS3):
 
-    def __init__(self, url, db, mall_nmae):
-        AwsConnectS3.__init__(self, CERDENTIALS)
-        self.mall_link = url
-        self.host = db['database_host']
-        self.index = db['database_index']
-        self.mall_nmae = mall_nmae
-
     def scrapper(self):
 
-        connect = AwsConnectS3(CERDENTIALS)
         mall = ScrapperKaravan.get_all_discount_page(self, self.mall_link)
-        mall_main_info = ScrapperKaravan.get_mall_info(self, mall.get('mall_info'), connect, self.mall_nmae)
+        mall_main_info = ScrapperKaravan.get_mall_info(self, mall.get('mall_info'), self.mall_name)
         database = Scrapper.get_database(self, self.host, self.index)
 
         for sales in mall.get('all_sales'):
@@ -336,6 +333,6 @@ class ScrapperKaravan(Scrapper, AwsConnectS3):
 
         return finished_mall_discount
 
-test = ScrapperKaravan('https://kharkov.karavan.com.ua/mtype/sales-ru/', DB_SETTINGS, 'Karavan-KHA')
+test = ScrapperKaravan('https://kharkov.karavan.com.ua/mtype/sales-ru/', DB_SETTINGS, 'Karavan-KHA', CERDENTIALS)
 
-# test.scrapper()
+test.scrapper()
