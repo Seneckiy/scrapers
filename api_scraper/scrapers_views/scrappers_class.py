@@ -338,4 +338,4 @@ class ScrapperKaravan(Scrapper, AwsConnectS3):
 
 test = ScrapperKaravan('https://kharkov.karavan.com.ua/mtype/sales-ru/', DB_SETTINGS, 'Karavan-KHA')
 
-test.scrapper()
+# test.scrapper()
