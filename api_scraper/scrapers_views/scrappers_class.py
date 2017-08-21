@@ -26,32 +26,6 @@ DB_SETTINGS = {
 }
 
 
-class AwsConnectS3:
-
-    def _get_client(self):
-
-        s3 = boto3.client(
-                's3',
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key,
-                region_name=self.region_name
-            )
-        return s3
-
-    def check_mall_image(self, link, mall_name):
-        s3 = self._get_client()
-
-        try:
-            s3.head_object(Bucket=self.bucket_name, Key=mall_name)
-            image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
-        except ClientError:
-            response = urllib.request.urlopen(link)
-            image = response.read()
-            s3.put_object(ACL='public-read', Body=image, Bucket=self.bucket_name, Key=mall_name)
-            image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
-        return image_link
-
-
 class Scrapper(metaclass=ABCMeta):
     MONTH = (
         (1, 'Января'),
@@ -68,9 +42,15 @@ class Scrapper(metaclass=ABCMeta):
         (12, 'Декабря')
     )
 
-    mall_link = None
-
     def __init__(self, url, db, mall_name, credentials):
+        """
+        :param url: <str> url: 'https://some_adress/'
+        :param db: <dict> database settings db = {'database_host': <str> some host, 'database_index': <int> some index}
+        :param mall_name: <str> mall name 'Karavan-KHA' or something like that
+        :param credentials: <dict> cred = {'access_key': some access_key , 'secret_key': some secret_key,
+                                           'region_name': some region_name, 'bucket_name': some bucket_name
+                                           }
+        """
         self.mall_link = url
         self.host = db['database_host']
         self.index = db['database_index']
@@ -79,7 +59,6 @@ class Scrapper(metaclass=ABCMeta):
         self.secret_key = credentials['secret_key']
         self.region_name = credentials['region_name']
         self.bucket_name = credentials['bucket_name']
-
 
     @abc.abstractmethod
     def scrapper(self):
@@ -93,6 +72,29 @@ class Scrapper(metaclass=ABCMeta):
         coll_second = db.mall_sales_second
         # return coll
         return coll_second
+
+    def _get_client(self):
+
+        s3 = boto3.client(
+                's3',
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+                region_name=self.region_name
+            )
+        return s3
+
+    def _check_mall_image(self, link, mall_name):
+        s3 = self._get_client()
+
+        try:
+            s3.head_object(Bucket=self.bucket_name, Key=mall_name)
+            image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
+        except ClientError:
+            response = urllib.request.urlopen(link)
+            image = response.read()
+            s3.put_object(ACL='public-read', Body=image, Bucket=self.bucket_name, Key=mall_name)
+            image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
+        return image_link
 
     def get_all_discount_page(self, shop_sales_link):
         """
@@ -124,6 +126,7 @@ class Scrapper(metaclass=ABCMeta):
         """
         This method takes html page tags and pulls the required information for mall
         :param mall_header: <list> with <tag>
+        :param mall_name: <str>
         :return: <dict> key: mall_name value: <str>
                         key: mall_link value: <str>
                         key: mall_image value: <str>
@@ -134,7 +137,7 @@ class Scrapper(metaclass=ABCMeta):
             mall_image = mall.find(
                 'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
             ).find('img').get('src')
-            mall_image = AwsConnectS3.check_mall_image(self, mall_image, mall_name)
+            mall_image = self._check_mall_image(mall_image, mall_name)
 
             mall_main_link = mall.find(
                 'li', {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
@@ -152,7 +155,7 @@ class Scrapper(metaclass=ABCMeta):
 
         return all_mall_sales_info
 
-    def get_discount_day(self, date_list):
+    def _get_discount_day(self, date_list):
         """
         This method generate date from string to date in this format : datetime.datetime(2017, 6, 19, 0, 0),
         and return <list> wiht sorted date
@@ -184,7 +187,7 @@ class Scrapper(metaclass=ABCMeta):
 
         return new_date_list
 
-    def get_start_end_date(self, discount_date, discount_start=''):
+    def _get_start_end_date(self, discount_date, discount_start=''):
         """
         This method generate a right <list> of date and return start date and end date in format:
         datetime.datetime(2016, 12, 18, 0, 0)
@@ -212,7 +215,7 @@ class Scrapper(metaclass=ABCMeta):
                         discount_date.insert(1, i[1].lower())
                         discount_date.insert(2,date_start_list[0])
 
-            date_list = self.get_discount_day(discount_date)
+            date_list = self._get_discount_day(discount_date)
             date_start_end = {
                 'start_date': date_list[0],
                 'end_date': date_list[1]
@@ -267,7 +270,7 @@ class Scrapper(metaclass=ABCMeta):
 
         discount_description = discount_page_info.find('div', {'class': 'main_block_content_grid_header_text'}).text
         discount_image = discount_image_all.split(',')[1][:-5] if len(discount_image_all) != 0 else ''
-        discount_date = self.get_start_end_date(discount_date_list, discount_date_without_start)
+        discount_date = self._get_start_end_date(discount_date_list, discount_date_without_start)
 
         discount_info = {
             'date_start': discount_date.get('start_date'),
@@ -316,7 +319,7 @@ class Scrapper(metaclass=ABCMeta):
         return finished_mall_discount
 
 
-class ScrapperKaravan(Scrapper, AwsConnectS3):
+class ScrapperKaravan(Scrapper):
 
     def scrapper(self):
 
