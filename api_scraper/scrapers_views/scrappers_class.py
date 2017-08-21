@@ -64,10 +64,11 @@ class Scrapper(metaclass=ABCMeta):
     def scrapper(self):
         pass
 
-    def get_database(self, host, index):
+    @staticmethod
+    def get_database(host, index):
         client = pymongo.MongoClient(host, index)
         db = client.test_scrapers
-        coll = db.mall_sales
+        # coll = db.mall_sales
         db.mall_sales_second.drop()
         coll_second = db.mall_sales_second
         # return coll
@@ -96,7 +97,8 @@ class Scrapper(metaclass=ABCMeta):
             image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
         return image_link
 
-    def get_all_discount_page(self, shop_sales_link):
+    @staticmethod
+    def get_all_discount_page(shop_sales_link):
         """
          This method pulling data out of HTML files
         :param shop_sales_link: <str> shop sales link 'https://kharkov.karavan.com.ua/mtype/sales-ru/'
@@ -140,7 +142,8 @@ class Scrapper(metaclass=ABCMeta):
             mall_image = self._check_mall_image(mall_image, mall_name)
 
             mall_main_link = mall.find(
-                'li', {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
+                'li',
+                {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
             ).find('a').get('href')
 
             mall_name = mall.find(
@@ -213,7 +216,7 @@ class Scrapper(metaclass=ABCMeta):
                 for i in self.MONTH:
                     if i[0] == int(date_start_list[1]):
                         discount_date.insert(1, i[1].lower())
-                        discount_date.insert(2,date_start_list[0])
+                        discount_date.insert(2, date_start_list[0])
 
             date_list = self._get_discount_day(discount_date)
             date_start_end = {
@@ -283,7 +286,8 @@ class Scrapper(metaclass=ABCMeta):
 
         return discount_info
 
-    def mongo_db(self, coll, discount_info, mall_name):
+    @staticmethod
+    def mongo_db(coll, discount_info, mall_name):
         search_discount = coll.find_one(
             {'discount_description': discount_info['discount_description'],
              'shop_name': discount_info['shop_name']}
@@ -323,13 +327,13 @@ class ScrapperKaravan(Scrapper):
 
     def scrapper(self):
 
-        mall = ScrapperKaravan.get_all_discount_page(self, self.mall_link)
+        mall = ScrapperKaravan.get_all_discount_page(self.mall_link)
         mall_main_info = ScrapperKaravan.get_mall_info(self, mall.get('mall_info'), self.mall_name)
-        database = Scrapper.get_database(self, self.host, self.index)
+        database = Scrapper.get_database(self.host, self.index)
 
         for sales in mall.get('all_sales'):
             discount_info = Scrapper.get_info_discount(self, sales)
-            Scrapper.mongo_db(self, database, discount_info, mall_main_info.copy())
+            Scrapper.mongo_db(database, discount_info, mall_main_info.copy())
         finished_mall_discount = [
             discount for discount in database.find({'mall_name': mall_main_info.get("mall_name")})
         ]
