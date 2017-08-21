@@ -3,17 +3,20 @@ import abc
 import boto3
 import json
 import pymongo
+import time
 import datetime
 import urllib.request
 from bs4 import BeautifulSoup
+from selenium import webdriver
 from urllib.request import urlopen
+from selenium.common.exceptions import NoSuchElementException
 from abc import ABCMeta
 from config import TOPIC_ARN
 from botocore.exceptions import ClientError
 from config import BUCKET_NAME, AWS_ACCESS_KEY, AWS_SECRET_KEY
 
 
-CERDENTIALS = {
+CREDENTIALS = {
     'access_key': AWS_ACCESS_KEY,
     'secret_key': AWS_SECRET_KEY,
     'region_name': 'us-east-2',
@@ -42,23 +45,25 @@ class Scrapper(metaclass=ABCMeta):
         (12, 'Декабря')
     )
 
-    def __init__(self, url, db, mall_name, credentials):
+    def __init__(self, url, settings, mall_name, credentials, main_url=None):
         """
         :param url: <str> url: 'https://some_adress/'
-        :param db: <dict> database settings db = {'database_host': <str> some host, 'database_index': <int> some index}
+        :param settings: <dict> database settings
+                        settings = {'database_host': <str> some host, 'database_index': <int> some index}
         :param mall_name: <str> mall name 'Karavan-KHA' or something like that
         :param credentials: <dict> cred = {'access_key': some access_key , 'secret_key': some secret_key,
                                            'region_name': some region_name, 'bucket_name': some bucket_name
                                            }
         """
         self.mall_link = url
-        self.host = db['database_host']
-        self.index = db['database_index']
+        self.host = settings['database_host']
+        self.index = settings['database_index']
         self.mall_name = mall_name
         self.access_key = credentials['access_key']
         self.secret_key = credentials['secret_key']
         self.region_name = credentials['region_name']
         self.bucket_name = credentials['bucket_name']
+        self.main_url = main_url if main_url else ''
 
     @abc.abstractmethod
     def scrapper(self):
@@ -69,7 +74,7 @@ class Scrapper(metaclass=ABCMeta):
         client = pymongo.MongoClient(host, index)
         db = client.test_scrapers
         # coll = db.mall_sales
-        db.mall_sales_second.drop()
+        # db.mall_sales_second.drop()
         coll_second = db.mall_sales_second
         # return coll
         return coll_second
@@ -98,6 +103,30 @@ class Scrapper(metaclass=ABCMeta):
         return image_link
 
     @staticmethod
+    def dafi_show_all_discount(shop_link):
+        """
+        Run headless Chrome
+        :param shop_link: <str> Mall link page with discount
+        :return: <class 'selenium.webdriver.chrome.webdriver.WebDriver'>
+        """
+        print("========START SELENIUM========")
+
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('window-size=1200x900')
+        driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", chrome_options=options)
+        driver.get(shop_link)
+
+        for _ in range(1):
+            button = driver.find_element_by_class_name('load-content')
+            if button:
+                button.click()
+                time.sleep(1)
+            else:
+                break
+        return driver
+
+    @staticmethod
     def get_all_discount_page(shop_sales_link):
         """
          This method pulling data out of HTML files
@@ -123,6 +152,43 @@ class Scrapper(metaclass=ABCMeta):
         }
 
         return data_from_mall
+
+    def dafi_get_mall_info(self, driver_page, mall_main_name):
+        """
+        Get main Mall info
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :param mall_main_name: <str> mall name
+        :return: <dict> with mall info
+        """
+        mall_main_info = driver_page.find_element_by_xpath('//div[@class="col-xs-6 col-sm-3 col-md-2"]')
+        mall_name = mall_main_info.find_element_by_css_selector('a').get_attribute('title')
+        mall_main_link = mall_main_info.find_element_by_css_selector('a').get_attribute('href')
+        mall_image = mall_main_info.find_element_by_css_selector('img').get_attribute('src')
+        mall_image = self._check_mall_image(mall_image, mall_main_name)
+
+        mall_info = {
+            'mall_name': mall_name.lower(),
+            'mall_link': mall_main_link,
+            'mall_image': mall_image
+        }
+
+        return mall_info
+
+    @staticmethod
+    def dafi_get_all_discount_links(driver_page):
+        """
+        This method create list with all discount links
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :return: <list> list with all discount links
+        """
+        discount_links = []
+        all_elements = driver_page.find_elements_by_xpath('//div[@class="col-sm-6 col-md-4"]')
+
+        for link in all_elements:
+            mall_discount_link = link.find_element_by_css_selector('a').get_attribute('href')
+            discount_links.append(mall_discount_link)
+
+        return discount_links
 
     def get_mall_info(self, mall_header, mall_name):
         """
@@ -226,6 +292,20 @@ class Scrapper(metaclass=ABCMeta):
 
         return date_start_end
 
+    def get_date_discount(self, driver_page):
+        """
+        Getting starting and ending discount date
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :return: <dict> dictionary with starting and ending discount date
+        """
+        time_list = driver_page.find_elements_by_css_selector('time')
+        time_start = time_list[0].text
+        time_end = time_list[1].text
+        finish_date = (time_start + '{}' + time_end).format(' - ').split()
+        discount_date = self._get_start_end_date(finish_date)
+
+        return discount_date
+
     def get_info_discount(self, discount_page_info):
         """
         This method takes html page tags and pulls the required information for discount
@@ -287,6 +367,40 @@ class Scrapper(metaclass=ABCMeta):
         return discount_info
 
     @staticmethod
+    def get_shop_info(driver_page, main_url):
+        """
+        Getting information about shop which have discount
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :param main_url: <str> main mall url
+        :return: <dict> Short shop info
+        """
+        shop_image = driver_page.find_element_by_xpath(
+            '//img[@class="img-responsive shop__logo-img"]'
+        ).get_attribute('data-src')
+        shop_image = main_url[:-1] + shop_image
+
+        shop_sale_image = driver_page.find_element_by_xpath(
+            '//img[@class="img-responsive shop__action-img"]'
+        ).get_attribute('data-src')
+        shop_sale_image = main_url[:-1] + shop_sale_image
+
+        shop_name = driver_page.find_element_by_xpath('//div[@class="shop__name"]').text
+        button = driver_page.find_element_by_xpath('//div[@class="shop__name"]')
+        button.click()
+        time.sleep(2)
+        shop_text = driver_page.find_elements_by_xpath('//div[@class="col-sm-6"]')
+        shop_link = shop_text[1].find_element_by_css_selector('a').get_attribute('href')
+
+        shop_info = {
+            'shop_name': shop_name.lower(),
+            'shop_image': shop_image,
+            'discount_image': shop_sale_image,
+            'shop_link': shop_link
+        }
+
+        return shop_info
+
+    @staticmethod
     def mongo_db(coll, discount_info, mall_name):
         search_discount = coll.find_one(
             {'discount_description': discount_info['discount_description'],
@@ -340,6 +454,63 @@ class ScrapperKaravan(Scrapper):
 
         return finished_mall_discount
 
-test = ScrapperKaravan('https://kharkov.karavan.com.ua/mtype/sales-ru/', DB_SETTINGS, 'Karavan-KHA', CERDENTIALS)
 
-test.scrapper()
+class ScrapperDafi(Scrapper):
+
+    def scrapper(self):
+
+        driver = ScrapperDafi.dafi_show_all_discount(self.mall_link)
+        discount_links = ScrapperDafi.dafi_get_all_discount_links(driver)
+        mall_main_info = ScrapperDafi.dafi_get_mall_info(self, driver, self.mall_name)
+        database = ScrapperDafi.get_database(self.host, self.index)
+
+        for link in discount_links:
+            driver.get(link)
+            discount_date = ScrapperDafi.get_date_discount(self, driver)
+            try:
+                discount_description = driver.find_element_by_css_selector('p').text
+            except NoSuchElementException:
+                discount_description = ''
+
+            shop_discount_info = {
+                'date_start': discount_date.get('start_date'),
+                'date_end': discount_date.get('end_date'),
+                'discount_description': discount_description,
+                'discount_link': link
+            }
+
+            if driver.find_elements_by_xpath('//div[@id="collapse-shops"]'):
+                shop_discount_info.update(ScrapperDafi.get_shop_info(driver, self.main_url))
+            else:
+                shop_name = driver.find_element_by_css_selector('h1').text
+                get_div_image = driver.find_element_by_xpath('//div[@class="event__posters"]')
+                discount_image = get_div_image.find_element_by_css_selector('div').get_attribute('style')
+                discount_image = ('{}' + discount_image.split('"')[1]).format(self.main_url[:-1])
+                shop_discount_info.update({'shop_name': shop_name.lower(), 'discount_image': discount_image})
+            Scrapper.mongo_db(database, shop_discount_info, mall_main_info)
+        finished_mall_discount = [discount for discount in database.find(
+            {'mall_name': mall_main_info.get("mall_name")}
+        )]
+
+        return finished_mall_discount
+
+
+# test = ScrapperKaravan(
+#     url='https://kharkov.karavan.com.ua/mtype/sales-ru/',
+#     settings=DB_SETTINGS,
+#     mall_name='Karavan-KHA',
+#     credentials=CREDENTIALS,
+#     main_url='oooo'
+# )
+
+# test.scrapper()
+
+# test = ScrapperDafi(
+#     url='http://kharkov.dafi.ua/mall-promo/',
+#     settings=DB_SETTINGS,
+#     mall_name='Dafi-KHA',
+#     credentials=CREDENTIALS,
+#     main_url='http://kharkov.dafi.ua/'
+# )
+#
+# test.scrapper()
