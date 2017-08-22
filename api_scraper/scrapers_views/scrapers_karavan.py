@@ -247,5 +247,3 @@ def scrapers_karavan_page(shop_link):
     print(len(finished_mall_discount))
     return finished_mall_discount
 
-KARAVAN_PAGE = 'https://kharkov.karavan.com.ua/mtype/sales-ru/'
-# scrapers_karavan_page(KARAVAN_PAGE)

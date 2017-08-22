@@ -8,9 +8,9 @@ from aws_storage import check_mall_image
 from db_info_and_adding import get_database, adding_new_discount_to_db, adding_second_discount_to_db
 
 DAFI_MAIN_PAGE = "http://kharkov.dafi.ua/"
-# DAFI_PAGE = "http://kharkov.dafi.ua/mall-promo/"
 
 MALL_NAME = 'Dafi'
+
 
 def show_all_discount(shop_link):
     """
@@ -188,5 +188,3 @@ def scrapers_dafi_page(shop_link):
 
     return finished_mall_discount
 
-DAFI_PAGE = "http://kharkov.dafi.ua/mall-promo/"
-# scrapers_dafi_page(DAFI_PAGE)
