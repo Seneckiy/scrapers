@@ -1,11 +1,11 @@
 import datetime
+import pymongo
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-
-import pymongo
-
 DATABASE_HOST = 'localhost'
+# DATABASE_HOST = '18.220.30.245'
 DATABASE_INDEX = 27017
 
 client = pymongo.MongoClient(DATABASE_HOST, DATABASE_INDEX)
@@ -39,6 +39,20 @@ class ToDoView(APIView):
                 search_list.append(discount)
                 print(discount)
         else:
-            print('oo')
+            print('Can not find anything')
 
         return Response(search_list)
+
+
+class DiscountView(APIView):
+
+    def get(self, request, pk):
+        search_discount = coll.find({'id': pk})
+        if search_discount.count():
+            for discount in search_discount:
+                del discount['_id']
+                print(discount)
+                return Response(discount)
+        else:
+            content = {'please try another id': 'this id is missing'}
+            return Response(content, status=status.HTTP_404_NOT_FOUND)

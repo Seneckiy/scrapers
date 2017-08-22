@@ -89,7 +89,7 @@ class Scrapper(metaclass=ABCMeta):
             )
         return s3
 
-    def _check_mall_image(self, link, mall_name):
+    def check_mall_image(self, link, mall_name):
         s3 = self._get_client()
 
         try:
@@ -101,128 +101,6 @@ class Scrapper(metaclass=ABCMeta):
             s3.put_object(ACL='public-read', Body=image, Bucket=self.bucket_name, Key=mall_name)
             image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
         return image_link
-
-    @staticmethod
-    def dafi_show_all_discount(shop_link):
-        """
-        Run headless Chrome
-        :param shop_link: <str> Mall link page with discount
-        :return: <class 'selenium.webdriver.chrome.webdriver.WebDriver'>
-        """
-        print("========START SELENIUM========")
-
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('window-size=1200x900')
-        driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", chrome_options=options)
-        driver.get(shop_link)
-
-        for _ in range(1):
-            button = driver.find_element_by_class_name('load-content')
-            if button:
-                button.click()
-                time.sleep(1)
-            else:
-                break
-        return driver
-
-    @staticmethod
-    def get_all_discount_page(shop_sales_link):
-        """
-         This method pulling data out of HTML files
-        :param shop_sales_link: <str> shop sales link 'https://kharkov.karavan.com.ua/mtype/sales-ru/'
-        :return: <dict> with key mall_info with value: list which include div with class 'container header'
-                 and key all_sales with value: list  which include all div with class:
-                 'col no_gutter col_4 tablet_col_4 mobile_full main_block_content_grid'
-        """
-
-        page = urlopen(shop_sales_link)
-        soup = BeautifulSoup(page.read(), "lxml")
-        view_all_page = soup.find(
-            'div', {'class': 'pagination-all'}
-        ).find('a').get('href')
-        page = urlopen(view_all_page)
-        soup = BeautifulSoup(page.read(), "lxml")
-        all_sales = soup.findAll(True, 'col no_gutter col_4 tablet_col_4 mobile_full main_block_content_grid')
-        mall_info = soup.findAll(True, 'container header')
-
-        data_from_mall = {
-            'mall_info': mall_info,
-            'all_sales': all_sales
-        }
-
-        return data_from_mall
-
-    def dafi_get_mall_info(self, driver_page, mall_main_name):
-        """
-        Get main Mall info
-        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
-        :param mall_main_name: <str> mall name
-        :return: <dict> with mall info
-        """
-        mall_main_info = driver_page.find_element_by_xpath('//div[@class="col-xs-6 col-sm-3 col-md-2"]')
-        mall_name = mall_main_info.find_element_by_css_selector('a').get_attribute('title')
-        mall_main_link = mall_main_info.find_element_by_css_selector('a').get_attribute('href')
-        mall_image = mall_main_info.find_element_by_css_selector('img').get_attribute('src')
-        mall_image = self._check_mall_image(mall_image, mall_main_name)
-
-        mall_info = {
-            'mall_name': mall_name.lower(),
-            'mall_link': mall_main_link,
-            'mall_image': mall_image
-        }
-
-        return mall_info
-
-    @staticmethod
-    def dafi_get_all_discount_links(driver_page):
-        """
-        This method create list with all discount links
-        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
-        :return: <list> list with all discount links
-        """
-        discount_links = []
-        all_elements = driver_page.find_elements_by_xpath('//div[@class="col-sm-6 col-md-4"]')
-
-        for link in all_elements:
-            mall_discount_link = link.find_element_by_css_selector('a').get_attribute('href')
-            discount_links.append(mall_discount_link)
-
-        return discount_links
-
-    def get_mall_info(self, mall_header, mall_name):
-        """
-        This method takes html page tags and pulls the required information for mall
-        :param mall_header: <list> with <tag>
-        :param mall_name: <str>
-        :return: <dict> key: mall_name value: <str>
-                        key: mall_link value: <str>
-                        key: mall_image value: <str>
-        """
-        all_mall_sales_info = {}
-
-        for mall in mall_header:
-            mall_image = mall.find(
-                'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
-            ).find('img').get('src')
-            mall_image = self._check_mall_image(mall_image, mall_name)
-
-            mall_main_link = mall.find(
-                'li',
-                {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
-            ).find('a').get('href')
-
-            mall_name = mall.find(
-                'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
-            ).find('img').get('title')
-
-            all_mall_sales_info = {
-                'mall_name': mall_name.lower(),
-                'mall_link': mall_main_link,
-                'mall_image': mall_image
-            }
-
-        return all_mall_sales_info
 
     def _get_discount_day(self, date_list):
         """
@@ -256,7 +134,7 @@ class Scrapper(metaclass=ABCMeta):
 
         return new_date_list
 
-    def _get_start_end_date(self, discount_date, discount_start=''):
+    def get_start_end_date(self, discount_date, discount_start=''):
         """
         This method generate a right <list> of date and return start date and end date in format:
         datetime.datetime(2016, 12, 18, 0, 0)
@@ -292,19 +170,105 @@ class Scrapper(metaclass=ABCMeta):
 
         return date_start_end
 
-    def get_date_discount(self, driver_page):
-        """
-        Getting starting and ending discount date
-        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
-        :return: <dict> dictionary with starting and ending discount date
-        """
-        time_list = driver_page.find_elements_by_css_selector('time')
-        time_start = time_list[0].text
-        time_end = time_list[1].text
-        finish_date = (time_start + '{}' + time_end).format(' - ').split()
-        discount_date = self._get_start_end_date(finish_date)
+    @staticmethod
+    def mongo_db(coll, discount_info, mall_name):
+        search_discount = coll.find_one(
+            {'discount_description': discount_info['discount_description'],
+             'shop_name': discount_info['shop_name']}
+        )
 
-        return discount_date
+        if not search_discount:
+            print("Adding new discount: {}".format((discount_info.get('shop_name'))))
+            mall_name.update(discount_info)
+            if mall_name.get('_id'):
+                del mall_name['_id']
+            coll.save(mall_name)
+
+            get_discount = coll.find_one({'_id': mall_name['_id']})
+
+            if get_discount['discount_image']:
+
+                data = {'link': get_discount['discount_image'], 'id': str(get_discount['_id'])}
+
+                client = boto3.client(
+                    'sns',
+                    aws_access_key_id=AWS_ACCESS_KEY,
+                    aws_secret_access_key=AWS_SECRET_KEY,
+                    region_name='us-east-2'
+                )
+
+                client.publish(TopicArn=TOPIC_ARN, Message=json.dumps(data))
+        else:
+
+            print("Discount already exists {}".format(discount_info.get('shop_name')))
+
+        finished_mall_discount = coll.find({'shop_name': discount_info.get('shop_name')}).next()
+
+        return finished_mall_discount
+
+
+class ScrapperKaravan(Scrapper):
+
+    @staticmethod
+    def get_all_discount_page(shop_sales_link):
+        """
+         This method pulling data out of HTML files
+        :param shop_sales_link: <str> shop sales link 'https://kharkov.karavan.com.ua/mtype/sales-ru/'
+        :return: <dict> with key mall_info with value: list which include div with class 'container header'
+                 and key all_sales with value: list  which include all div with class:
+                 'col no_gutter col_4 tablet_col_4 mobile_full main_block_content_grid'
+        """
+
+        page = urlopen(shop_sales_link)
+        soup = BeautifulSoup(page.read(), "lxml")
+        view_all_page = soup.find(
+            'div', {'class': 'pagination-all'}
+        ).find('a').get('href')
+        page = urlopen(view_all_page)
+        soup = BeautifulSoup(page.read(), "lxml")
+        all_sales = soup.findAll(True, 'col no_gutter col_4 tablet_col_4 mobile_full main_block_content_grid')
+        mall_info = soup.findAll(True, 'container header')
+
+        data_from_mall = {
+            'mall_info': mall_info,
+            'all_sales': all_sales
+        }
+
+        return data_from_mall
+
+    def get_mall_info(self, mall_header, mall_name):
+        """
+        This method takes html page tags and pulls the required information for mall
+        :param mall_header: <list> with <tag>
+        :param mall_name: <str>
+        :return: <dict> key: mall_name value: <str>
+                        key: mall_link value: <str>
+                        key: mall_image value: <str>
+        """
+        all_mall_sales_info = {}
+
+        for mall in mall_header:
+            mall_image = mall.find(
+                'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
+            ).find('img').get('src')
+            mall_image = Scrapper.check_mall_image(self, mall_image, mall_name)
+
+            mall_main_link = mall.find(
+                'li',
+                {'class': 'menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-1690'}
+            ).find('a').get('href')
+
+            mall_name = mall.find(
+                'div', {'class': 'col no_gutter col_2 tablet_col_12 mobile_full header_top_logo'}
+            ).find('img').get('title')
+
+            all_mall_sales_info = {
+                'mall_name': mall_name.lower(),
+                'mall_link': mall_main_link,
+                'mall_image': mall_image
+            }
+
+        return all_mall_sales_info
 
     def get_info_discount(self, discount_page_info):
         """
@@ -353,7 +317,7 @@ class Scrapper(metaclass=ABCMeta):
 
         discount_description = discount_page_info.find('div', {'class': 'main_block_content_grid_header_text'}).text
         discount_image = discount_image_all.split(',')[1][:-5] if len(discount_image_all) != 0 else ''
-        discount_date = self._get_start_end_date(discount_date_list, discount_date_without_start)
+        discount_date = Scrapper.get_start_end_date(self, discount_date_list, discount_date_without_start)
 
         discount_info = {
             'date_start': discount_date.get('start_date'),
@@ -365,6 +329,98 @@ class Scrapper(metaclass=ABCMeta):
         }
 
         return discount_info
+
+    def scrapper(self):
+
+        mall = ScrapperKaravan.get_all_discount_page(self.mall_link)
+        mall_main_info = ScrapperKaravan.get_mall_info(self, mall.get('mall_info'), self.mall_name)
+        database = Scrapper.get_database(self.host, self.index)
+
+        for sales in mall.get('all_sales'):
+            discount_info = ScrapperKaravan.get_info_discount(self, sales)
+            Scrapper.mongo_db(database, discount_info, mall_main_info.copy())
+        finished_mall_discount = [
+            discount for discount in database.find({'mall_name': mall_main_info.get("mall_name")})
+        ]
+
+        return finished_mall_discount
+
+
+class ScrapperDafi(Scrapper):
+    @staticmethod
+    def dafi_show_all_discount(shop_link):
+        """
+        Run headless Chrome
+        :param shop_link: <str> Mall link page with discount
+        :return: <class 'selenium.webdriver.chrome.webdriver.WebDriver'>
+        """
+        print("========START SELENIUM========")
+
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('window-size=1200x900')
+        driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", chrome_options=options)
+        driver.get(shop_link)
+
+        for _ in range(1):
+            button = driver.find_element_by_class_name('load-content')
+            if button:
+                button.click()
+                time.sleep(1)
+            else:
+                break
+        return driver
+
+    @staticmethod
+    def dafi_get_all_discount_links(driver_page):
+        """
+        This method create list with all discount links
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :return: <list> list with all discount links
+        """
+        discount_links = []
+        all_elements = driver_page.find_elements_by_xpath('//div[@class="col-sm-6 col-md-4"]')
+
+        for link in all_elements:
+            mall_discount_link = link.find_element_by_css_selector('a').get_attribute('href')
+            discount_links.append(mall_discount_link)
+
+        return discount_links
+
+    def dafi_get_mall_info(self, driver_page, mall_main_name):
+        """
+        Get main Mall info
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :param mall_main_name: <str> mall name
+        :return: <dict> with mall info
+        """
+        mall_main_info = driver_page.find_element_by_xpath('//div[@class="col-xs-6 col-sm-3 col-md-2"]')
+        mall_name = mall_main_info.find_element_by_css_selector('a').get_attribute('title')
+        mall_main_link = mall_main_info.find_element_by_css_selector('a').get_attribute('href')
+        mall_image = mall_main_info.find_element_by_css_selector('img').get_attribute('src')
+        mall_image = Scrapper.check_mall_image(self, mall_image, mall_main_name)
+
+        mall_info = {
+            'mall_name': mall_name.lower(),
+            'mall_link': mall_main_link,
+            'mall_image': mall_image
+        }
+
+        return mall_info
+
+    def get_date_discount(self, driver_page):
+        """
+        Getting starting and ending discount date
+        :param driver_page: <class> 'selenium.webdriver.chrome.webdriver.WebDriver'
+        :return: <dict> dictionary with starting and ending discount date
+        """
+        time_list = driver_page.find_elements_by_css_selector('time')
+        time_start = time_list[0].text
+        time_end = time_list[1].text
+        finish_date = (time_start + '{}' + time_end).format(' - ').split()
+        discount_date = Scrapper.get_start_end_date(self, finish_date)
+
+        return discount_date
 
     @staticmethod
     def get_shop_info(driver_page, main_url):
@@ -400,69 +456,12 @@ class Scrapper(metaclass=ABCMeta):
 
         return shop_info
 
-    @staticmethod
-    def mongo_db(coll, discount_info, mall_name):
-        search_discount = coll.find_one(
-            {'discount_description': discount_info['discount_description'],
-             'shop_name': discount_info['shop_name']}
-        )
-
-        if not search_discount:
-            print("Adding new discount: {}".format((discount_info.get('shop_name'))))
-            mall_name.update(discount_info)
-            if mall_name.get('_id'):
-                del mall_name['_id']
-            coll.save(mall_name)
-
-            get_discount = coll.find_one({'_id': mall_name['_id']})
-
-            if get_discount['discount_image']:
-
-                data = {'link': get_discount['discount_image'], 'id': str(get_discount['_id'])}
-
-                client = boto3.client(
-                    'sns',
-                    aws_access_key_id=AWS_ACCESS_KEY,
-                    aws_secret_access_key=AWS_SECRET_KEY,
-                    region_name='us-east-2'
-                )
-
-                client.publish(TopicArn=TOPIC_ARN, Message=json.dumps(data))
-        else:
-
-            print("Discount already exists {}".format(discount_info.get('shop_name')))
-
-        finished_mall_discount = coll.find({'shop_name': discount_info.get('shop_name')}).next()
-
-        return finished_mall_discount
-
-
-class ScrapperKaravan(Scrapper):
-
-    def scrapper(self):
-
-        mall = ScrapperKaravan.get_all_discount_page(self.mall_link)
-        mall_main_info = ScrapperKaravan.get_mall_info(self, mall.get('mall_info'), self.mall_name)
-        database = Scrapper.get_database(self.host, self.index)
-
-        for sales in mall.get('all_sales'):
-            discount_info = Scrapper.get_info_discount(self, sales)
-            Scrapper.mongo_db(database, discount_info, mall_main_info.copy())
-        finished_mall_discount = [
-            discount for discount in database.find({'mall_name': mall_main_info.get("mall_name")})
-        ]
-
-        return finished_mall_discount
-
-
-class ScrapperDafi(Scrapper):
-
     def scrapper(self):
 
         driver = ScrapperDafi.dafi_show_all_discount(self.mall_link)
         discount_links = ScrapperDafi.dafi_get_all_discount_links(driver)
         mall_main_info = ScrapperDafi.dafi_get_mall_info(self, driver, self.mall_name)
-        database = ScrapperDafi.get_database(self.host, self.index)
+        database = Scrapper.get_database(self.host, self.index)
 
         for link in discount_links:
             driver.get(link)
@@ -487,6 +486,7 @@ class ScrapperDafi(Scrapper):
                 discount_image = get_div_image.find_element_by_css_selector('div').get_attribute('style')
                 discount_image = ('{}' + discount_image.split('"')[1]).format(self.main_url[:-1])
                 shop_discount_info.update({'shop_name': shop_name.lower(), 'discount_image': discount_image})
+
             Scrapper.mongo_db(database, shop_discount_info, mall_main_info)
         finished_mall_discount = [discount for discount in database.find(
             {'mall_name': mall_main_info.get("mall_name")}
@@ -500,9 +500,8 @@ class ScrapperDafi(Scrapper):
 #     settings=DB_SETTINGS,
 #     mall_name='Karavan-KHA',
 #     credentials=CREDENTIALS,
-#     main_url='oooo'
 # )
-
+#
 # test.scrapper()
 
 # test = ScrapperDafi(
