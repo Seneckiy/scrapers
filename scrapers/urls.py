@@ -12,5 +12,5 @@ urlpatterns = [
 
     url(r'^admin/', admin.site.urls),
     url(r'^api/scrapers/$', ToDoView.as_view()),
-    url(r'^api/scrapers/(?P<pk>[0-9a-f]{24})/$', DiscountView.as_view()),
+    url(r'^api/scrapers/(?P<pk>[0-9a-z]{24})/$', DiscountView.as_view()),
 ]
