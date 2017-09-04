@@ -17,13 +17,17 @@ class ScrapperDafi(Scrapper):
         """
         print("========START SELENIUM========")
 
-        chromdriver_path = os.path.join(BASE_DIR, '../chromedriver')
-
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('window-size=1200x900')
-        driver = webdriver.Chrome(chromdriver_path, chrome_options=options)
+        # chromdriver_path = os.path.join(BASE_DIR, '../chromedriver')
+        #
+        # options = webdriver.ChromeOptions()
+        # options.add_argument('--headless')
+        # options.add_argument('window-size=1200x900')
+        # driver = webdriver.Chrome(chromdriver_path, chrome_options=options)
+        # driver.get(shop_link)
+        driver = webdriver.PhantomJS()
+        driver.set_window_size(1200, 900)
         driver.get(shop_link)
+
         try:
             for _ in range(1):
                 button = driver.find_element_by_class_name('load-content')
