@@ -3,7 +3,8 @@ import os
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from scrappers_class import Scrapper
-from scrapers.settings import BASE_DIR
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 class ScrapperDafi(Scrapper):
     
@@ -15,8 +16,9 @@ class ScrapperDafi(Scrapper):
         :return: <class 'selenium.webdriver.chrome.webdriver.WebDriver'>
         """
         print("========START SELENIUM========")
-        
-        chromdriver_path = os.path.join(BASE_DIR, 'chromedriver')
+
+        chromdriver_path = os.path.join(BASE_DIR, '../chromedriver')
+
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('window-size=1200x900')
