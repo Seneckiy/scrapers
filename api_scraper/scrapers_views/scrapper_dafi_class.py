@@ -1,8 +1,9 @@
 import time
+import os
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from scrappers_class import Scrapper
-
+from scrapers.settings import BASE_DIR
 
 class ScrapperDafi(Scrapper):
     
@@ -14,11 +15,12 @@ class ScrapperDafi(Scrapper):
         :return: <class 'selenium.webdriver.chrome.webdriver.WebDriver'>
         """
         print("========START SELENIUM========")
-
+        
+        chromdriver_path = os.path.join(BASE_DIR, 'chromedriver')
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('window-size=1200x900')
-        driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", chrome_options=options)
+        driver = webdriver.Chrome(chromdriver_path, chrome_options=options)
         driver.get(shop_link)
         try:
             for _ in range(1):
