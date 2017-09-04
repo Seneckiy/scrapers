@@ -20,14 +20,16 @@ class ScrapperDafi(Scrapper):
         options.add_argument('window-size=1200x900')
         driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", chrome_options=options)
         driver.get(shop_link)
-
-        for _ in range(1):
-            button = driver.find_element_by_class_name('load-content')
-            if button:
-                button.click()
-                time.sleep(1)
-            else:
-                break
+        try:
+            for _ in range(1):
+                button = driver.find_element_by_class_name('load-content')
+                if button:
+                    button.click()
+                    time.sleep(1)
+                else:
+                    break
+        except:
+            return driver
         return driver
 
     @staticmethod
