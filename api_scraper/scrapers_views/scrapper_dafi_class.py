@@ -125,6 +125,13 @@ class ScrapperDafi(Scrapper):
 
         return shop_info
 
+    @staticmethod
+    def _get_image(discount_image):
+        start = discount_image.find('(')
+        end = discount_image.find(')')
+        image_link = discount_image[start+1: end]
+        return image_link
+
     def scrapper(self):
 
         driver = ScrapperDafi.dafi_show_all_discount(self.mall_link)
@@ -153,7 +160,9 @@ class ScrapperDafi(Scrapper):
                 shop_name = driver.find_element_by_css_selector('h1').text
                 get_div_image = driver.find_element_by_xpath('//div[@class="event__posters"]')
                 discount_image = get_div_image.find_element_by_css_selector('div').get_attribute('style')
-                discount_image = ('{}' + discount_image.split('"')[1]).format(self.main_url[:-1])
+                discount_image = ScrapperDafi._get_image(discount_image)
+
+                # discount_image = ('{}' + discount_image.split('"')[1]).format(self.main_url[:-1])
                 shop_discount_info.update({'shop_name': shop_name.lower(), 'discount_image': discount_image})
 
             Scrapper.mongo_db(self, database, shop_discount_info, mall_main_info)
