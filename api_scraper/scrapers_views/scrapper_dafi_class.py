@@ -163,7 +163,11 @@ class ScrapperDafi(Scrapper):
                 discount_image = ScrapperDafi._get_image(discount_image)
 
                 # discount_image = ('{}' + discount_image.split('"')[1]).format(self.main_url[:-1])
-                shop_discount_info.update({'shop_name': shop_name.lower(), 'discount_image': discount_image})
+                shop_discount_info.update({
+                    'shop_name': shop_name.lower(),
+                    'discount_image': discount_image,
+                    'shop_link': shop_discount_info.get('discount_link')
+                })
 
             Scrapper.mongo_db(self, database, shop_discount_info, mall_main_info)
         finished_mall_discount = [discount for discount in database.find(
