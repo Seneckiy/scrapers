@@ -73,14 +73,14 @@ class Scrapper(metaclass=ABCMeta):
 
     def check_mall_image(self, link, mall_name):
         s3 = self._get_client()
-
+        mall_name = "{}{}".format(mall_name, ".svg")
         try:
             s3.head_object(Bucket=self.bucket_name, Key=mall_name)
             image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
         except ClientError:
             response = urllib.request.urlopen(link)
             image = response.read()
-            s3.put_object(ACL='public-read', Body=image, Bucket=self.bucket_name, Key=mall_name)
+            s3.put_object(ACL='public-read', Body=image, Bucket=self.bucket_name, Key=mall_name, ContentType='image/svg+xml')
             image_link = '{}/{}/{}'.format(s3.meta.endpoint_url, self.bucket_name, mall_name)
         return image_link
 

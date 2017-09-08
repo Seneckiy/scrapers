@@ -11,3 +11,12 @@ boto3==1.0.0
 
 # sudo apt-get install chromium-chromedriver
 # chmod 777 /usr/local/bin/chromedriver
+
+# git clone https://github.com/angular/quickstart.git test
+# cd test
+# npm install
+# ng init --source-dir app (Make sure to accept overwriting files and tweak after if need be. This will also install angular-cli as your dev dependencies)
+# npm start
+
+
+# angular create new component: ng g c component_name
